@@ -27,19 +27,10 @@ func connect_slots(node):
 				return
 			second_slot = node
 			#Connect slots
-			first_slot.connected_node = second_slot
-			second_slot.connected_node = first_slot
-			second_slot.line = first_slot.line
-			#Calculate positions
-			var pos = first_slot.get_node("ConnectionLine").global_position
-			var new_pos = Vector2(second_slot.global_position.x - pos.x, second_slot.global_position.y - pos.y + 0.5)
-			#Update out slot's line
-			first_slot.get_node("ConnectionLine").points[1] = new_pos
-			#Signal connection
-			first_slot.emit_signal("on_connection_created", first_slot.value)
-			#Reset slots
-			first_slot = null
-			second_slot = null
+			first_slot.connect_to(second_slot)
+			#Reset selection and exit
+			reset_selection()
+			return
 
 func reset_selection():
 	first_slot = null

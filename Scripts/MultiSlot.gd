@@ -1,10 +1,10 @@
 extends Node2D
 
 var size
-var line
+var lines
 var type
 var sprite
-var connected_node
+var connected_nodes
 var value
 var highlight
 var can_click
@@ -18,7 +18,7 @@ signal on_connection_created(new_value)
 
 func _ready():
 	value = false
-	connected_node = null
+	connected_nodes = [null]
 	highlight = null
 	can_click = false
 	type = Enums.SLOT_TYPE.IN
@@ -51,31 +51,29 @@ func _process(delta):
 func init_slot(type):
 	self.type = type
 	#If an out slot create a Line2D node
-	if type == Enums.SLOT_TYPE.OUT:
-		line = Line2D.new()
-		line.name = "ConnectionLine"
-		line.width = 1.0
-		line.default_color = LINE_COLORS[0]
-		add_child(line)
-		line.add_point(Vector2(5, 0.5))
-		line.add_point(Vector2(5, 0.5))
+	#if type == Enums.SLOT_TYPE.OUT:
+	#	line = Line2D.new()
+	#	line.name = "ConnectionLine"
+	#	line.width = 1.0
+	#	line.default_color = LINE_COLORS[0]
+	#	add_child(line)
+	#	line.add_point(Vector2(5, 0.5))
+	#	line.add_point(Vector2(5, 0.5))
 	#Init Highlight
-	highlight.set_position(Vector2(size.x * type, 0.5))
+	highlight.set_position(Vector2(size.x, 0.5))
 	highlight.visible = false
 
 #Signals parent node when value changed
 func signal_parent(new_value):
 	value = new_value
-	connected_node.value = new_value
-	line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
+	for node in connected_nodes:
+		node.value = new_value
+	for line in lines:
+		line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
 	var parent = null
-	#Signals based on slot type
-	if type == Enums.SLOT_TYPE.IN:
-		parent = get_parent()
-		if parent is LogicGate:
-			parent.update_value()
-	else:
-		parent = connected_node.get_parent()
+	#Signal all parents
+	for node in connected_nodes:
+		parent = node.get_parent()
 		if parent is LogicGate:
 			parent.update_value()
 #Checks if mous is over sprite
@@ -89,26 +87,16 @@ func _on_Area2D_input_event(viewport, event, shape_idx):
 		can_click = event.pressed
 
 func reset():
-	connected_node.emit_signal("on_value_changed", false)
-	connected_node.connected_node = null
-	connected_node = null
-
-func connect_to(node_to_connect):
-	connected_node = node_to_connect
-	node_to_connect.connected_node = self
-	node_to_connect.line = line
-	#Calculate positions
-	var pos = get_node("ConnectionLine").global_position
-	var new_pos = Vector2(node_to_connect.global_position.x - pos.x, node_to_connect.global_position.y - pos.y + 0.5)
-	#Update out slot's line
-	get_node("ConnectionLine").points[1] = new_pos
-	#Signal connection
-	emit_signal("on_connection_created", value)
+	for node in connected_nodes:
+		node.emit_signal("on_value_changed", false)
+		node.connected_node = null
+		node = null
 
 #Updates the position of ConnectionLine
 func update_connection_line_pos():
 	#Checks if slot is connected to another
-	if connected_node != null:
-		if type == Enums.SLOT_TYPE.OUT:
-			line.points[1] = Vector2(connected_node.global_position.x - global_position.x, \
-									 connected_node.global_position.y - global_position.y + 0.5)
+	if lines.size > 0:
+		var i = 0
+		for line in lines:
+			line.points[1] = Vector2(connected_nodes[i].global_position.x - global_position.x, \
+									 connected_nodes[i].global_position.y - global_position.y + 0.5)
