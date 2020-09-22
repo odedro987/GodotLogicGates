@@ -12,7 +12,7 @@ func _ready():
 func connect_slots(node):
 	#If first slot is null and clicked slot is an out type
 	if first_slot == null:
-		if node.type == Enums.SLOT_TYPE.OUT:
+		if node.type == Enums.SLOT_TYPE.OUT || Enums.SLOT_TYPE.MULTI_OUT:
 			first_slot = node
 	#If second slot is null and node is an in type and not already connected
 	elif second_slot == null:
@@ -22,9 +22,13 @@ func connect_slots(node):
 			return
 		elif node.type == Enums.SLOT_TYPE.IN:
 			#If first or second node are connected, reset selection and exit
-			if first_slot.connected_node != null || node.connected_node != null:
+			if node.connected_node != null:
 				reset_selection()
 				return
+			if first_slot.type == Enums.SLOT_TYPE.OUT:
+				if first_slot.connected_node != null:
+					reset_selection()
+					return
 			second_slot = node
 			#Connect slots
 			first_slot.connect_to(second_slot)

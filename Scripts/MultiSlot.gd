@@ -18,7 +18,8 @@ signal on_connection_created(new_value)
 
 func _ready():
 	value = false
-	connected_nodes = [null]
+	lines = []
+	connected_nodes = []
 	highlight = null
 	can_click = false
 	type = Enums.SLOT_TYPE.IN
@@ -50,32 +51,46 @@ func _process(delta):
 #Init if dynamically created
 func init_slot(type):
 	self.type = type
-	#If an out slot create a Line2D node
-	#if type == Enums.SLOT_TYPE.OUT:
-	#	line = Line2D.new()
-	#	line.name = "ConnectionLine"
-	#	line.width = 1.0
-	#	line.default_color = LINE_COLORS[0]
-	#	add_child(line)
-	#	line.add_point(Vector2(5, 0.5))
-	#	line.add_point(Vector2(5, 0.5))
 	#Init Highlight
 	highlight.set_position(Vector2(size.x, 0.5))
 	highlight.visible = false
 
-#Signals parent node when value changed
-func signal_parent(new_value):
-	value = new_value
-	for node in connected_nodes:
-		node.value = new_value
-	for line in lines:
-		line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
-	var parent = null
-	#Signal all parents
-	for node in connected_nodes:
-		parent = node.get_parent()
-		if parent is LogicGate:
-			parent.update_value()
+func connect_to(node_to_connect):
+	connected_nodes.append(node_to_connect)
+	node_to_connect.connected_node = self
+	#If an out slot create a Line2D node
+	var line = Line2D.new()
+	line.name = node_to_connect.name + "Line"
+	print(line.name)
+	line.width = 1.0
+	line.default_color = LINE_COLORS[0]
+	add_child(line)
+	line.add_point(Vector2(5, 0.5))
+	line.add_point(Vector2(5, 0.5))
+	node_to_connect.line = line
+	#Calculate positions
+	var pos = line.global_position
+	var new_pos = Vector2(node_to_connect.global_position.x - pos.x, node_to_connect.global_position.y - pos.y + 0.5)
+	#Update out slot's line
+	line.points[1] = new_pos
+	lines.append(line)
+	#Signal connection
+	emit_signal("on_connection_created", value, true)
+
+#Signals parents node when value changed
+func signal_parent(new_value, forced=false):
+	if new_value != value || forced:
+		value = new_value
+		for node in connected_nodes:
+			node.value = new_value
+		for line in lines:
+			line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
+		var parent = null
+		#Signal all parents
+		for node in connected_nodes:
+			parent = node.get_parent()
+			if parent is LogicGate:
+				parent.update_value()
 #Checks if mous is over sprite
 func is_mouse_over():
 	var mouse_pos = get_global_mouse_position()
@@ -95,8 +110,9 @@ func reset():
 #Updates the position of ConnectionLine
 func update_connection_line_pos():
 	#Checks if slot is connected to another
-	if lines.size > 0:
+	if lines.size() > 0:
 		var i = 0
 		for line in lines:
 			line.points[1] = Vector2(connected_nodes[i].global_position.x - global_position.x, \
 									 connected_nodes[i].global_position.y - global_position.y + 0.5)
+			i = i + 1

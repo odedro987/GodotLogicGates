@@ -27,18 +27,24 @@ func _process(delta):
 		position = get_global_mouse_position() + grabbed_offset
 
 #Create slots
-func create_slots(in_slots_num):
+func create_slots(in_slots_num, multiout=false):
 	self.in_slots_num = in_slots_num
 	#For all in slots
 	for i in range(in_slots_num):
 		var temp_in = load("res://Scenes/Slot.tscn").instance()
+		temp_in.name = name + "Slot" + str(i)
 		in_slots.append(temp_in)
 		add_child(in_slots[i])
 		temp_in.init_slot(Enums.SLOT_TYPE.IN)
 	#Create out slot
-	out_slot = load("res://Scenes/Slot.tscn").instance()
-	add_child(out_slot)
-	out_slot.init_slot(Enums.SLOT_TYPE.OUT)
+	if !multiout:
+		out_slot = load("res://Scenes/Slot.tscn").instance()
+		add_child(out_slot)
+		out_slot.init_slot(Enums.SLOT_TYPE.OUT)
+	else:
+		out_slot = load("res://Scenes/MultiSlot.tscn").instance()
+		add_child(out_slot)
+		out_slot.init_slot(Enums.SLOT_TYPE.MULTI_OUT)
 
 #Updates value and sprite:
 func update_value():

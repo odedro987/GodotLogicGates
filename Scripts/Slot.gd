@@ -50,34 +50,26 @@ func _process(delta):
 #Init if dynamically created
 func init_slot(type):
 	self.type = type
-	#If an out slot create a Line2D node
-	if type == Enums.SLOT_TYPE.OUT:
-		line = Line2D.new()
-		line.name = "ConnectionLine"
-		line.width = 1.0
-		line.default_color = LINE_COLORS[0]
-		add_child(line)
-		line.add_point(Vector2(5, 0.5))
-		line.add_point(Vector2(5, 0.5))
 	#Init Highlight
 	highlight.set_position(Vector2(size.x * type, 0.5))
 	highlight.visible = false
 
 #Signals parent node when value changed
-func signal_parent(new_value):
-	value = new_value
-	connected_node.value = new_value
-	line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
-	var parent = null
-	#Signals based on slot type
-	if type == Enums.SLOT_TYPE.IN:
-		parent = get_parent()
-		if parent is LogicGate:
-			parent.update_value()
-	else:
-		parent = connected_node.get_parent()
-		if parent is LogicGate:
-			parent.update_value()
+func signal_parent(new_value, forced=false):
+	if new_value != value || forced:
+		value = new_value
+		connected_node.value = new_value
+		line.default_color = LINE_COLORS[1] if new_value else LINE_COLORS[0]
+		var parent = null
+		#Signals based on slot type
+		if type == Enums.SLOT_TYPE.IN:
+			parent = get_parent()
+			if parent is LogicGate:
+				parent.update_value()
+		else:
+			parent = connected_node.get_parent()
+			if parent is LogicGate:
+				parent.update_value()
 #Checks if mous is over sprite
 func is_mouse_over():
 	var mouse_pos = get_global_mouse_position()
@@ -96,14 +88,23 @@ func reset():
 func connect_to(node_to_connect):
 	connected_node = node_to_connect
 	node_to_connect.connected_node = self
+	#If an out slot create a Line2D node
+	if type == Enums.SLOT_TYPE.OUT:
+		line = Line2D.new()
+		line.name = "ConnectionLine"
+		line.width = 1.0
+		line.default_color = LINE_COLORS[0]
+		add_child(line)
+		line.add_point(Vector2(5, 0.5))
+		line.add_point(Vector2(5, 0.5))
 	node_to_connect.line = line
 	#Calculate positions
-	var pos = get_node("ConnectionLine").global_position
+	var pos = line.global_position
 	var new_pos = Vector2(node_to_connect.global_position.x - pos.x, node_to_connect.global_position.y - pos.y + 0.5)
 	#Update out slot's line
-	get_node("ConnectionLine").points[1] = new_pos
+	line.points[1] = new_pos
 	#Signal connection
-	emit_signal("on_connection_created", value)
+	emit_signal("on_connection_created", value, true)
 
 #Updates the position of ConnectionLine
 func update_connection_line_pos():
